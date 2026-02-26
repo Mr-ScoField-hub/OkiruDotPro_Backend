@@ -1,15 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2020",
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "Node",
+    "outDir": "dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "declaration": false,
-    "resolveJsonModule": true
+    "skipLibCheck": true
   },
-  "include": ["*.ts", "pipeline/*.ts"]
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules"]
 }
