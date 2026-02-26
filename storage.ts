@@ -14,7 +14,7 @@ import type {
   EsdContribution, InsertEsdContribution,
   SedContribution, InsertSedContribution,
   Scenario, InsertScenario, ImportLog, ExportLog, FinancialYear,
-} from "@shared/schema";
+} from "./schema";
 
 function clean<T>(doc: any): T {
   if (!doc) return doc;
