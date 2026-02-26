@@ -3,13 +3,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import compression from "compression";
 import cors from "cors";
+import session from "express-session";
+import MongoStore from "connect-mongo";
 import { registerRoutes } from "./routes";
 import { createServer } from "http";
 import { connectDB } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
-
 const isProd = process.env.NODE_ENV === "production";
 
 declare module "http" {
@@ -20,33 +21,43 @@ declare module "http" {
 
 app.set("trust proxy", 1);
 
+// Security
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(compression());
 
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",").map(s => s.trim())
-  : undefined;
+// CORS
+const allowedOrigins = process.env.CORS_ORIGIN?.split(",").map(s => s.trim()) || ["http://localhost:3000"];
+app.use(cors({ origin: isProd ? allowedOrigins : true, credentials: true }));
 
-app.use(cors({ origin: isProd ? (allowedOrigins || false) : true, credentials: true }));
-
-app.use(
-  express.json({
-    limit: "10mb",
-    verify: (req, _res, buf) => { req.rawBody = buf; },
-  }),
-);
+// Body parser
+app.use(express.json({ limit: "10mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 
+// Session
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "super-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+    cookie: {
+      secure: isProd,
+      httpOnly: true,
+      sameSite: isProd ? "none" : "lax",
+      maxAge: 1000 * 60 * 60 * 24,
+    },
+  })
+);
+
+// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   let capturedJsonResponse: Record<string, any> | undefined;
-
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
-
   res.on("finish", () => {
     if (req.path.startsWith("/api")) {
       const duration = Date.now() - start;
@@ -55,10 +66,10 @@ app.use((req, res, next) => {
       console.log(logLine);
     }
   });
-
   next();
 });
 
+// Error handling
 process.on("uncaughtException", (err) => console.error("[FATAL] Uncaught Exception:", err));
 process.on("unhandledRejection", (reason) => console.error("[FATAL] Unhandled Rejection:", reason));
 process.on("SIGTERM", () => { console.log("[SIGNAL] SIGTERM"); process.exit(0); });
@@ -68,11 +79,11 @@ process.on("SIGINT", () => { console.log("[SIGNAL] SIGINT"); process.exit(0); })
   await connectDB();
   await registerRoutes(httpServer, app);
 
+  // Error middleware
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = isProd ? "Internal Server Error" : (err.message || "Internal Server Error");
     if (!isProd) console.error("Internal Server Error:", err);
-    else console.error(`[ERROR] ${err.message}`, err.stack?.split("\n").slice(0, 3).join("\n"));
     if (res.headersSent) return next(err);
     return res.status(status).json({ message });
   });
