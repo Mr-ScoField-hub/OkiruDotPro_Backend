@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx index.ts",
-    "start": "cross-env NODE_ENV=production node dist/index.cjs",
-    "build": "node build.js"
+    "start": "cross-env NODE_ENV=production node index.js",
+    "build": "echo 'No build needed for plain Node.js backend'",
+    "test": "echo 'No tests yet'"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
