@@ -110,11 +110,6 @@ process.on('exit', (code) => { console.log(`[EXIT] Process exiting with code ${c
     return res.status(status).json({ message });
   });
 
-  if (!isProd) {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
-  }
-
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(port, "0.0.0.0", () => {
     log(`Server running on http://0.0.0.0:${port} [${isProd ? "production" : "development"}]`);
