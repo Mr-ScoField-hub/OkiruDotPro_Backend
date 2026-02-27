@@ -18,8 +18,7 @@
     "models.ts",
     "routes.ts",
     "schema.ts",
-    "storage.ts",
-    "pipeline/**/*.ts"
+    "storage.ts"
   ],
   "exclude": ["node_modules", "dist", "vite.ts"]
 }

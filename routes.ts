@@ -4,7 +4,6 @@ import { createServer, type Server } from "http";
 import rateLimit from "express-rate-limit";
 import { storage } from "./storage.js";
 import multer from "multer";
-import { parseExcelBuffer, buildPipelineResult } from "./pipeline/index.js";
 import bcrypt from "bcrypt";
 import session from "express-session";
 import MongoStore from "connect-mongo";
@@ -21,24 +20,19 @@ const isProd = process.env.NODE_ENV === "production";
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024, files: 10 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
   fileFilter: (_req, file, cb) => {
     const allowed = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel',
-      'text/csv',
-      'application/pdf',
-      'application/octet-stream',
       'image/png',
       'image/jpeg',
       'image/gif',
       'image/webp',
       'image/svg+xml',
     ];
-    if (allowed.includes(file.mimetype) || /\.(xlsx?|csv|pdf|png|jpe?g|gif|webp|svg)$/i.test(file.originalname)) {
+    if (allowed.includes(file.mimetype) || /\.(png|jpe?g|gif|webp|svg)$/i.test(file.originalname)) {
       cb(null, true);
     } else {
-      cb(new Error('Unsupported file type.'));
+      cb(new Error('Unsupported file type. Only images are allowed.'));
     }
   },
 });
@@ -129,17 +123,6 @@ export async function registerRoutes(
 
   app.get('/', (_req: Request, res: Response) => {
     return res.json({ status: "ok", name: "Okiru Backend", version: "1.0.0" });
-  });
-
-  app.post('/api/import/test', upload.single('file'), (req: Request, res: Response) => {
-    const file = req.file;
-    return res.json({
-      status: 'ok',
-      received: !!file,
-      filename: file?.originalname || null,
-      size: file?.size || 0,
-      mimetype: file?.mimetype || null,
-    });
   });
 
   app.post('/api/auth/register', authLimiter, async (req: Request, res: Response) => {
@@ -476,108 +459,6 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error('Get import logs error:', error);
       return res.status(500).json({ message: "Failed to fetch import logs" });
-    }
-  });
-
-  app.post('/api/import/excel', (req: Request, res: Response, next: NextFunction) => {
-    console.log(`[Import] Received upload request, content-length: ${req.headers['content-length']}`);
-    upload.array('files', 10)(req, res, (err: any) => {
-      if (err) {
-        console.error('[Import] Multer error:', err.message);
-        return res.status(400).json({
-          status: 'failed',
-          processedAt: new Date().toISOString(),
-          sourceFiles: [],
-          extractionSummary: { sheetsParsed: 0, sheetsTotal: 0, rowsExtracted: 0, entitiesExtracted: 0, warnings: [], errors: [err.message || 'File upload failed'] },
-          logs: [{ message: `Upload error: ${err.message}`, type: 'error', timestamp: new Date().toISOString() }],
-        });
-      }
-      next();
-    });
-  }, async (req: Request, res: Response) => {
-    try {
-      const files = req.files as Express.Multer.File[];
-      console.log(`[Import] Processing ${files?.length || 0} file(s): ${files?.map(f => `${f.originalname} (${(f.size / 1024).toFixed(1)}KB)`).join(', ')}`);
-
-      const emptyPipeline = {
-        status: 'failed' as const,
-        processedAt: new Date().toISOString(),
-        sourceFiles: [],
-        extractionSummary: { sheetsParsed: 0, sheetsTotal: 0, rowsExtracted: 0, entitiesExtracted: 0, warnings: [] as string[], errors: [] as string[] },
-        client: { name: '', tradeName: '', address: '', registrationNumber: '', vatNumber: '', financialYearEnd: '', industrySector: '', applicableScorecard: '', applicableCodes: '', certificateNumber: '' },
-        financials: { revenue: 0, npat: 0, payroll: 0, leviableAmount: 0, tmpsInclusions: 0, tmpsExclusions: 0, tmps: 0, deemedNpat: 0, deemedNpatUsed: false, industryNormUsed: 0 },
-        ownership: { blackOwnershipPercent: 0, blackFemaleOwnershipPercent: 0, votingRightsBlack: 0, economicInterestBlack: 0, calculatedPoints: 0, subMinimumMet: false, shareholders: [] },
-        managementControl: { calculatedPoints: 0, employeesCount: 0, blackBoardPercent: 0, blackExecPercent: 0, disabledPercent: 0, employees: [] },
-        skillsDevelopment: { calculatedPoints: 0, subMinimumMet: false, leviableAmount: 0, totalSpendBlack: 0, trainingProgramsCount: 0, trainings: [] },
-        preferentialProcurement: { calculatedPoints: 0, subMinimumMet: false, tmps: 0, recognizedSpend: 0, suppliersCount: 0, suppliers: [] },
-        enterpriseSupplierDevelopment: { calculatedPoints: 0, totalContributions: 0, esdList: [] },
-        socioEconomicDevelopment: { calculatedPoints: 0, totalSpend: 0, sedList: [] },
-        yes: { qualified: false, youthCount: 0, absorbedCount: 0 },
-        scorecard: { pillars: { ownership: 0, managementControl: 0, skillsDevelopment: 0, preferentialProcurement: 0, enterpriseSupplierDevelopment: 0, socioEconomicDevelopment: 0, yesInitiative: 0, totalPoints: 0 }, beeLevel: 'Non-Compliant', recognitionLevelPercent: 0, blackOwnershipPercent: 0, blackFemaleOwnershipPercent: 0, valueAddingSupplier: 'NO', edBeneficiary: 'NO', edCategory: 'N/A', subMinimumsMet: false, discountedLevel: 'Non-Compliant', isDiscounted: false, yesTier: null },
-        rawData: { financeRaw: [], ownershipRaw: [], mcRaw: [] },
-        pdfCertificateData: { docNo: '', approvedBy: '', revisionNo: '', lastModified: '', verificationDate: '', analyst: '', signatory: '' },
-        strategyPackSuggestions: [],
-        sheetsFound: [] as string[],
-        sheetsMatched: [] as any[],
-        logs: [] as { message: string; type: string; timestamp: string }[],
-      };
-
-      if (!files || files.length === 0) {
-        return res.status(400).json({ ...emptyPipeline, extractionSummary: { ...emptyPipeline.extractionSummary, errors: ['No files were uploaded.'] }, logs: [{ message: 'No files received', type: 'error', timestamp: new Date().toISOString() }] });
-      }
-
-      const excelFile = files.find(f => /\.(xlsx?|csv)$/i.test(f.originalname));
-      if (!excelFile) {
-        return res.status(400).json({ ...emptyPipeline, extractionSummary: { ...emptyPipeline.extractionSummary, errors: ['No Excel file found in upload.'] }, logs: [{ message: 'No Excel file in upload batch', type: 'error', timestamp: new Date().toISOString() }] });
-      }
-
-      console.log(`[Import] Parsing Excel file: ${excelFile.originalname} (${(excelFile.size / 1024).toFixed(1)}KB)`);
-      const parseResult = parseExcelBuffer(excelFile.buffer, excelFile.originalname);
-      const pipelineResult = buildPipelineResult(parseResult, excelFile.originalname);
-      console.log(`[Import] Pipeline result: ${pipelineResult.status}, sheets: ${pipelineResult.extractionSummary.sheetsParsed}/${pipelineResult.extractionSummary.sheetsTotal}, entities: ${pipelineResult.extractionSummary.entitiesExtracted}`);
-
-      if (req.session.userId) {
-        try {
-          await storage.createImportLog({
-            userId: req.session.userId,
-            clientId: req.body.clientId || null,
-            fileName: excelFile.originalname,
-            status: pipelineResult.status === 'failed' ? 'failed' : 'success',
-            sheetsFound: pipelineResult.extractionSummary.sheetsTotal,
-            sheetsMatched: pipelineResult.extractionSummary.sheetsParsed,
-            entitiesExtracted: pipelineResult.extractionSummary.entitiesExtracted,
-            errors: pipelineResult.extractionSummary.errors,
-          });
-        } catch (logErr) {
-          console.error('Failed to log import:', logErr);
-        }
-      }
-
-      return res.json(pipelineResult);
-    } catch (error: any) {
-      console.error('Import error:', error);
-      return res.status(500).json({
-        status: 'failed',
-        processedAt: new Date().toISOString(),
-        sourceFiles: [],
-        extractionSummary: { sheetsParsed: 0, sheetsTotal: 0, rowsExtracted: 0, entitiesExtracted: 0, warnings: [], errors: [error.message || 'An unexpected error occurred during import.'] },
-        client: { name: '', tradeName: '', address: '', registrationNumber: '', vatNumber: '', financialYearEnd: '', industrySector: '', applicableScorecard: '', applicableCodes: '', certificateNumber: '' },
-        financials: { revenue: 0, npat: 0, payroll: 0, leviableAmount: 0, tmpsInclusions: 0, tmpsExclusions: 0, tmps: 0, deemedNpat: 0, deemedNpatUsed: false, industryNormUsed: 0 },
-        ownership: { blackOwnershipPercent: 0, blackFemaleOwnershipPercent: 0, votingRightsBlack: 0, economicInterestBlack: 0, calculatedPoints: 0, subMinimumMet: false, shareholders: [] },
-        managementControl: { calculatedPoints: 0, employeesCount: 0, blackBoardPercent: 0, blackExecPercent: 0, disabledPercent: 0, employees: [] },
-        skillsDevelopment: { calculatedPoints: 0, subMinimumMet: false, leviableAmount: 0, totalSpendBlack: 0, trainingProgramsCount: 0, trainings: [] },
-        preferentialProcurement: { calculatedPoints: 0, subMinimumMet: false, tmps: 0, recognizedSpend: 0, suppliersCount: 0, suppliers: [] },
-        enterpriseSupplierDevelopment: { calculatedPoints: 0, totalContributions: 0, esdList: [] },
-        socioEconomicDevelopment: { calculatedPoints: 0, totalSpend: 0, sedList: [] },
-        yes: { qualified: false, youthCount: 0, absorbedCount: 0 },
-        scorecard: { pillars: { ownership: 0, managementControl: 0, skillsDevelopment: 0, preferentialProcurement: 0, enterpriseSupplierDevelopment: 0, socioEconomicDevelopment: 0, yesInitiative: 0, totalPoints: 0 }, beeLevel: 'Non-Compliant', recognitionLevelPercent: 0, blackOwnershipPercent: 0, blackFemaleOwnershipPercent: 0, valueAddingSupplier: 'NO', edBeneficiary: 'NO', edCategory: 'N/A', subMinimumsMet: false, discountedLevel: 'Non-Compliant', isDiscounted: false, yesTier: null },
-        rawData: { financeRaw: [], ownershipRaw: [], mcRaw: [] },
-        pdfCertificateData: { docNo: '', approvedBy: '', revisionNo: '', lastModified: '', verificationDate: '', analyst: '', signatory: '' },
-        strategyPackSuggestions: [],
-        sheetsFound: [],
-        sheetsMatched: [],
-        logs: [{ message: `Server error: ${error.message}`, type: 'error', timestamp: new Date().toISOString() }],
-      });
     }
   });
 
