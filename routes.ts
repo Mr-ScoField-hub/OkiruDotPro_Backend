@@ -131,6 +131,17 @@ export async function registerRoutes(
     return res.json({ status: "ok", name: "Okiru Backend", version: "1.0.0" });
   });
 
+  app.post('/api/import/test', upload.single('file'), (req: Request, res: Response) => {
+    const file = req.file;
+    return res.json({
+      status: 'ok',
+      received: !!file,
+      filename: file?.originalname || null,
+      size: file?.size || 0,
+      mimetype: file?.mimetype || null,
+    });
+  });
+
   app.post('/api/auth/register', authLimiter, async (req: Request, res: Response) => {
     try {
       const { username, password, fullName, email, organizationName } = req.body;
