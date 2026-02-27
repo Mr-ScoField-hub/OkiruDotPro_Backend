@@ -68,7 +68,7 @@ process.on("SIGINT", () => { console.log("[SIGNAL] SIGINT"); process.exit(0); })
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = isProd ? "Internal Server Error" : (err.message || "Internal Server Error");
-    if (!isProd) console.error("Internal Server Error:", err);
+    console.error(`[Error] ${_req.method} ${_req.path} ${status}:`, err.message || err);
     if (res.headersSent) return next(err);
     return res.status(status).json({ message });
   });
