@@ -1,4 +1,4 @@
-import type { PipelineResult } from './types';
+import type { PipelineResult } from './types.js';
 
 export function generateSuggestions(
   pillars: PipelineResult['scorecard']['pillars'],

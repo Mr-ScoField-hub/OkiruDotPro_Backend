@@ -4,7 +4,7 @@ import {
   ShareholderModel, OwnershipDataModel, EmployeeModel, TrainingProgramModel,
   SupplierModel, ProcurementDataModel, EsdContributionModel, SedContributionModel,
   ScenarioModel, ImportLogModel, ExportLogModel,
-} from "./models";
+} from "./models.js";
 import type {
   User, InsertUser, Organization, InsertOrganization,
   Client, InsertClient, Shareholder, InsertShareholder,
@@ -14,7 +14,7 @@ import type {
   EsdContribution, InsertEsdContribution,
   SedContribution, InsertSedContribution,
   Scenario, InsertScenario, ImportLog, ExportLog, FinancialYear,
-} from "./schema";
+} from "./schema.js";
 
 function clean<T>(doc: any): T {
   if (!doc) return doc;

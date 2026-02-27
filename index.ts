@@ -5,9 +5,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import compression from "compression";
 import cors from "cors";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes.js";
 import { createServer } from "http";
-import { connectDB } from "./db";
+import { connectDB } from "./db.js";
 
 const app = express();
 const httpServer = createServer(app);

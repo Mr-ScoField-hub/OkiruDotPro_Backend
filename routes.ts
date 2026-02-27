@@ -2,9 +2,9 @@ import type { Express, NextFunction } from "express";
 import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { createServer, type Server } from "http";
 import rateLimit from "express-rate-limit";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import multer from "multer";
-import { parseExcelBuffer, buildPipelineResult } from "./pipeline";
+import { parseExcelBuffer, buildPipelineResult } from "./pipeline/index.js";
 import bcrypt from "bcrypt";
 import session from "express-session";
 import MongoStore from "connect-mongo";
@@ -12,7 +12,7 @@ import {
   ShareholderModel, OwnershipDataModel, EmployeeModel, TrainingProgramModel,
   SupplierModel, ProcurementDataModel, EsdContributionModel, SedContributionModel,
   ScenarioModel, FinancialYearModel, ImportLogModel, ExportLogModel,
-} from "./models";
+} from "./models.js";
 
 type Request = ExpressRequest<Record<string, string>, any, any, Record<string, string>>;
 type Response = ExpressResponse;

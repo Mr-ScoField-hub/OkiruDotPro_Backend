@@ -1,9 +1,9 @@
-import type { ParseResult } from './excelParser';
-import type { PipelineResult, PipelineLog } from './types';
-import { r2, calcOwnership, calcManagementAndEE, calcSkills, calcProcurement, calcEsd, calcSed } from './calculators';
-import { determineBeeLevel, LEVEL_POINTS_THRESHOLDS } from './levelDetermination';
-import { generateSuggestions } from './suggestions';
-import { resolveIndustryNorm } from './industryNorms';
+import type { ParseResult } from './excelParser.js';
+import type { PipelineResult, PipelineLog } from './types.js';
+import { r2, calcOwnership, calcManagementAndEE, calcSkills, calcProcurement, calcEsd, calcSed } from './calculators.js';
+import { determineBeeLevel, LEVEL_POINTS_THRESHOLDS } from './levelDetermination.js';
+import { generateSuggestions } from './suggestions.js';
+import { resolveIndustryNorm } from './industryNorms.js';
 
 export function buildPipelineResult(parsed: ParseResult, filename: string): PipelineResult {
   const now = new Date().toISOString();

@@ -1,4 +1,4 @@
-import type { ParseResult } from './excelParser';
+import type { ParseResult } from './excelParser.js';
 
 export function r2(n: number): number {
   return Math.round(n * 100) / 100;

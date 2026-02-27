@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
-import { matchSheetName, matchHeaders, type FieldMatch } from './textSimilarity';
-import { extractEntity, extractCurrency, extractPercentage } from './entityExtractor';
+import { matchSheetName, matchHeaders, type FieldMatch } from './textSimilarity.js';
+import { extractEntity, extractCurrency, extractPercentage } from './entityExtractor.js';
 
 export interface ParseLog {
   message: string;
