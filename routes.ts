@@ -468,9 +468,25 @@ export async function registerRoutes(
     }
   });
 
-  app.post('/api/import/excel', upload.array('files', 10), async (req: Request, res: Response) => {
+  app.post('/api/import/excel', (req: Request, res: Response, next: NextFunction) => {
+    console.log(`[Import] Received upload request, content-length: ${req.headers['content-length']}`);
+    upload.array('files', 10)(req, res, (err: any) => {
+      if (err) {
+        console.error('[Import] Multer error:', err.message);
+        return res.status(400).json({
+          status: 'failed',
+          processedAt: new Date().toISOString(),
+          sourceFiles: [],
+          extractionSummary: { sheetsParsed: 0, sheetsTotal: 0, rowsExtracted: 0, entitiesExtracted: 0, warnings: [], errors: [err.message || 'File upload failed'] },
+          logs: [{ message: `Upload error: ${err.message}`, type: 'error', timestamp: new Date().toISOString() }],
+        });
+      }
+      next();
+    });
+  }, async (req: Request, res: Response) => {
     try {
       const files = req.files as Express.Multer.File[];
+      console.log(`[Import] Processing ${files?.length || 0} file(s): ${files?.map(f => `${f.originalname} (${(f.size / 1024).toFixed(1)}KB)`).join(', ')}`);
 
       const emptyPipeline = {
         status: 'failed' as const,
@@ -504,8 +520,10 @@ export async function registerRoutes(
         return res.status(400).json({ ...emptyPipeline, extractionSummary: { ...emptyPipeline.extractionSummary, errors: ['No Excel file found in upload.'] }, logs: [{ message: 'No Excel file in upload batch', type: 'error', timestamp: new Date().toISOString() }] });
       }
 
+      console.log(`[Import] Parsing Excel file: ${excelFile.originalname} (${(excelFile.size / 1024).toFixed(1)}KB)`);
       const parseResult = parseExcelBuffer(excelFile.buffer, excelFile.originalname);
       const pipelineResult = buildPipelineResult(parseResult, excelFile.originalname);
+      console.log(`[Import] Pipeline result: ${pipelineResult.status}, sheets: ${pipelineResult.extractionSummary.sheetsParsed}/${pipelineResult.extractionSummary.sheetsTotal}, entities: ${pipelineResult.extractionSummary.entitiesExtracted}`);
 
       if (req.session.userId) {
         try {
