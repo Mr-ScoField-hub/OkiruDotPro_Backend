@@ -4,10 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx index.ts",
-    "start": "node dist/index.js",
+    "dev": "NODE_ENV=development tsx index.ts",
     "build": "tsc",
-    "test": "echo 'No tests yet'"
+    "start": "NODE_ENV=production node dist/index.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -25,20 +24,20 @@
     "ws": "^8.19.0",
     "xlsx": "^0.18.5",
     "zod": "^3.25.76",
-    "zod-validation-error": "^3.4.0",
-    "tsx": "^4.21.0"
+    "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.0",
+    "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.2",
     "@types/multer": "^2.0.0",
-    "@types/node": "^20.19.0",
+    "@types/node": "^20.19.35",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.5.13",
-    "esbuild": "^0.25.0",
+    "cross-env": "^10.1.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.6.3"
   }
 }
