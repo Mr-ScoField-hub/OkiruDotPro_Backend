@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
 export async function connectDB(): Promise<void> {
-  const uri = process.env.MONGODB_URI;
+  const uri = process.env.MONGO_URI;
   if (!uri) {
-    throw new Error("MONGODB_URI environment variable is not set. Please provide your MongoDB Atlas connection string.");
+    throw new Error("MONGO_URI environment variable is not set. Please provide your MongoDB Atlas connection string.");
   }
 
   const maxRetries = 3;

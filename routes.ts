@@ -1,4 +1,5 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express, NextFunction } from "express";
+import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { createServer, type Server } from "http";
 import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
@@ -12,6 +13,9 @@ import {
   SupplierModel, ProcurementDataModel, EsdContributionModel, SedContributionModel,
   ScenarioModel, FinancialYearModel, ImportLogModel, ExportLogModel,
 } from "./models";
+
+type Request = ExpressRequest<Record<string, string>, any, any, Record<string, string>>;
+type Response = ExpressResponse;
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -96,7 +100,7 @@ export async function registerRoutes(
 
   app.use(session({
     store: MongoStore.create({
-      mongoUrl: process.env.MONGODB_URI,
+      mongoUrl: process.env.MONGO_URI,
       collectionName: "sessions",
       ttl: 7 * 24 * 60 * 60,
     }),
@@ -121,6 +125,10 @@ export async function registerRoutes(
       uptime: process.uptime(),
       environment: isProd ? 'production' : 'development',
     });
+  });
+
+  app.get('/', (_req: Request, res: Response) => {
+    return res.json({ status: "ok", name: "Okiru Backend", version: "1.0.0" });
   });
 
   app.post('/api/auth/register', authLimiter, async (req: Request, res: Response) => {
@@ -560,7 +568,7 @@ export async function registerRoutes(
   app.get('/api/clients/:id/export-logs', requireAuth, async (req: Request, res: Response) => {
     try {
       if (!(await verifyClientAccess(req, res))) return;
-      const logs = await storage.getExportLogsByClient(req.params.id);
+      const logs = await storage.getExportLogs(req.params.id);
       return res.json(logs);
     } catch (error: any) {
       console.error('Get export logs error:', error);

@@ -1,14 +1,10 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-
-import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import compression from "compression";
 import cors from "cors";
-import session from "express-session";
-import MongoStore from "connect-mongo";
 import { registerRoutes } from "./routes";
 import { createServer } from "http";
 import { connectDB } from "./db";
@@ -37,21 +33,6 @@ app.use(cors({ origin: isProd ? allowedOrigins : true, credentials: true }));
 app.use(express.json({ limit: "10mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 
-// Session
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "super-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
-    cookie: {
-      secure: isProd,
-      httpOnly: true,
-      sameSite: isProd ? "none" : "lax",
-      maxAge: 1000 * 60 * 60 * 24,
-    },
-  })
-);
 
 // Logging middleware
 app.use((req, res, next) => {
