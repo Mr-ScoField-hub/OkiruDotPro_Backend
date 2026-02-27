@@ -109,9 +109,9 @@ export async function registerRoutes(
     saveUninitialized: false,
     name: 'okiru.sid',
     cookie: {
-      secure: isProd,
+      secure: true,
       httpOnly: true,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: 'none' as const,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }));

@@ -27,7 +27,7 @@ app.use(compression());
 
 // CORS
 const allowedOrigins = process.env.CORS_ORIGIN?.split(",").map(s => s.trim()) || ["http://localhost:3000"];
-app.use(cors({ origin: isProd ? allowedOrigins : true, credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // Body parser
 app.use(express.json({ limit: "10mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));

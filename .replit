@@ -43,3 +43,4 @@ build = ["npm", "run", "build"]
 [userenv.shared]
 PORT = "5000"
 NODE_ENV = "development"
+CORS_ORIGIN = "https://www.okiru.pro,https://okiru.pro"
